@@ -27,7 +27,36 @@ export const SAVE_BOOK = gql`
     saveBook(book: $book) {
       token
       user {
+        _id
         email
+        savedBooks {
+          authors
+          description
+          bookId
+          title
+          link
+          image
+        }
+      }
+    }
+  }
+`;
+
+export const DELETE_BOOK = gql`
+  mutation DeleteBook($bookId: String!) {
+    deleteBook(bookId: $bookId) {
+      token
+      user {
+        _id
+        email
+        savedBooks {
+          authors
+          description
+          bookId
+          title
+          link
+          image
+        }
       }
     }
   }
