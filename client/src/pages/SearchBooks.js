@@ -3,8 +3,9 @@ import { Container, Col, Form, Button, Card, Row } from "react-bootstrap";
 import { useMutation } from "@apollo/client";
 import { SAVE_BOOK } from "../utils/mutations";
 import Auth from "../utils/auth";
-import { saveBook, searchGoogleBooks } from "../utils/API";
+import { searchGoogleBooks } from "../utils/API";
 import { saveBookIds, getSavedBookIds } from "../utils/localStorage";
+import { QUERY_ME } from "../utils/queries";
 
 const SearchBooks = () => {
   // create state for holding returned google api data
@@ -14,7 +15,28 @@ const SearchBooks = () => {
 
   // create state to hold saved bookId values
   const [savedBookIds, setSavedBookIds] = useState(getSavedBookIds());
-  const [saveBook] = useMutation(SAVE_BOOK);
+
+  const [saveBook] = useMutation(SAVE_BOOK, {
+    // The update method allows us to access and update the local cache
+    update(cache, { data: { saveBook } }) {
+      try {
+        // First we retrieve existing book data that is stored in the cache under the `QUERY_ME` query
+        // Could potentially not exist yet, so wrap in a try/catch
+        const { me } = cache.readQuery({ query: QUERY_ME });
+        // Then we update the cache by combining existing book data with the newly created data returned from the mutation
+        cache.writeQuery({
+          query: QUERY_ME,
+          // If we want new data to show up before or after existing data, adjust the order of this array
+          data: {
+            me: { ...me, ...{ savedBooks: [...me.savedBooks, saveBook] } },
+          },
+        });
+      } catch (e) {
+        console.error(e);
+      }
+    },
+  });
+
   // set up useEffect hook to save `savedBookIds` list to localStorage on component unmount
   // learn more here: https://reactjs.org/docs/hooks-effect.html#effects-with-cleanup
   useEffect(() => {
@@ -66,7 +88,7 @@ const SearchBooks = () => {
     }
 
     try {
-      const { data } = await saveBook({
+      await saveBook({
         variables: { book: bookToSave },
       });
 
